@@ -1,0 +1,15 @@
+# AgentCoin Mining Skill - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web3 and Ethereum interaction
+web3>=6.0.0
+eth-account>=0.10.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# HTTP requests for API
+requests>=2.31.0
+
+# Type hints support (for older Python versions)
+# typing-extensions>=4.0.0; python_version<"3.10"

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "mine": "cd skills/agentcoin && python3 miner.py",
+    "mine:cli": "cd skills/agentcoin && python3 mine.py"
   },
   "dependencies": {
     "next": "16.0.7",
