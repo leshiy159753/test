@@ -1,0 +1,6 @@
+# Core dependency for HTTP requests
+requests>=2.31.0
+
+# Optional: For whitelist signing support (ed25519)
+# Uncomment to install:
+# solders>=0.20.0
