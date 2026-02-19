@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "mine": "cd skills/agentcoin && python3 miner.py",
-    "mine:cli": "cd skills/agentcoin && python3 mine.py"
+    "mine:cli": "cd skills/agentcoin && python3 mine.py",
+    "mint:bloks": "cd skills/agentcoin && python3 bloks_mint.py",
+    "mint:bloks:dry": "cd skills/agentcoin && python3 bloks_mint.py --dry-run"
   },
   "dependencies": {
     "next": "16.0.7",

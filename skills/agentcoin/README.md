@@ -168,6 +168,139 @@ skills/agentcoin/
 - The solver handles common math and logic problems
 - Complex problems may require manual submission via CLI
 
+---
+
+## BLOKS Agent Mint
+
+Mint NFTs via the **BLOKS Agent Mint API** using a full PoW challenge/verify/mint flow.
+
+### How it works
+
+```
+get_mint_phase()
+       │
+       ├─ "closed"    → exit (nothing to do)
+       ├─ "whitelist" → sign EIP-191 message, include in mint payload
+       └─ "public"    → proceed without signature
+       │
+get_pow_challenge()   ← request SHA-256 challenge + difficulty target
+       │
+solve_pow()           ← brute-force nonce locally (pure Python, no deps)
+       │
+verify_pow()          ← exchange solved nonce for a one-time mint token
+       │
+mint()                ← POST mint (+ WL signature when in whitelist phase)
+```
+
+### Configuration
+
+Add the following to your `.env` file (see `.env.example`):
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `AGC_PRIVATE_KEY` | ✅ | — | Wallet private key (shared with AGC mining) |
+| `BLOKS_PROJECT_ID` | ✅ | — | BLOKS project / collection ID |
+| `BLOKS_API_BASE_URL` | ❌ | `https://api.bloks.io/agent-mint` | API root URL |
+| `BLOKS_CHAIN_ID` | ❌ | `8453` | EVM chain ID (Base mainnet) |
+
+### Running the minter
+
+**Via npm (from project root):**
+```bash
+# Full mint
+npm run mint:bloks
+
+# Dry-run — solve PoW but skip the mint transaction
+npm run mint:bloks:dry
+```
+
+**Directly:**
+```bash
+cd skills/agentcoin
+
+# Minimal — reads everything from .env
+python3 bloks_mint.py
+
+# Override config via CLI
+python3 bloks_mint.py \
+  --private-key 0xYOURKEY \
+  --project-id my-collection \
+  --chain-id 8453
+
+# Dry-run with verbose logging
+python3 bloks_mint.py --dry-run --verbose
+
+# Custom whitelist message (if the project uses a non-default format)
+python3 bloks_mint.py --wl-message "MyProject WL: 0xYourAddress"
+```
+
+### CLI Options
+
+| Flag | Description |
+|---|---|
+| `--private-key HEX` | Wallet private key (overrides env var) |
+| `--api-base-url URL` | BLOKS API base URL (overrides env var) |
+| `--project-id ID` | BLOKS project ID (overrides env var) |
+| `--chain-id INT` | EVM chain ID (overrides env var) |
+| `--wl-message MSG` | Custom EIP-191 whitelist message to sign |
+| `--max-retries N` | HTTP retries per call (default: 3) |
+| `--retry-delay SEC` | Base back-off delay in seconds (default: 2.0) |
+| `--dry-run` | Stop before the mint step (test PoW only) |
+| `-v / --verbose` | Enable DEBUG-level logging |
+
+### Whitelist signing
+
+When `get_mint_phase()` returns `"whitelist"`, the client automatically:
+
+1. Constructs the signing message:
+   `"BLOKS Whitelist Mint: <checksummed_wallet_address>"`
+2. Signs it with `eth_account.messages.encode_defunct` (EIP-191 personal sign).
+3. Adds `whitelistSignature` and `whitelistAddress` fields to the mint payload.
+
+Pass `--wl-message "..."` if the project requires a custom message format.
+
+### Programmatic usage
+
+```python
+from bloks_config import load_bloks_config
+from bloks_client import BloksMintClient
+
+config = load_bloks_config(project_id="my-collection")
+client = BloksMintClient(config)
+
+# Full flow
+result = client.run_mint_flow()
+if result:
+    print(f"Minted! tx={result.tx_hash} tokenId={result.token_id}")
+
+# Step-by-step
+phase     = client.get_mint_phase()
+challenge = client.get_pow_challenge()
+solution  = client.solve_pow(challenge)
+token     = client.verify_pow(solution)
+result    = client.mint(token, phase)
+```
+
+### Project structure (updated)
+
+```
+skills/agentcoin/
+├── __init__.py              # Package marker + public exports
+├── config.py                # Web3 / AGC mining configuration
+├── bloks_config.py          # NEW — BLOKS-specific config dataclass
+├── bloks_client.py          # NEW — BLOKS API client (phase/PoW/mint)
+├── bloks_mint.py            # NEW — CLI entry point for BLOKS minting
+├── mine.py                  # CLI tool for manual AGC operations
+├── miner.py                 # Auto-mining daemon
+├── requirements.txt         # Python dependencies
+├── .env.example             # Environment template (now includes BLOKS vars)
+├── README.md                # This file
+└── abis/
+    ├── problem_manager.json
+    ├── agent_registry.json
+    └── reward_distributor.json
+```
+
 ## License
 
 MIT - See project root for details.
